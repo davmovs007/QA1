@@ -1,6 +1,8 @@
 package ui;
 
+import model.Priority;
 import model.Task;
+import model.TaskStatus;
 import service.FileManager;
 import service.TaskManager;
 
@@ -10,6 +12,8 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class MainFrame extends JFrame {
     private static final String AUTO_SAVE_FILE = FileManager.DEFAULT_FILE_NAME;
@@ -18,13 +22,18 @@ public class MainFrame extends JFrame {
     private JTable taskTable;
     private TaskTableModel tableModel;
 
+    // Filter components
+    private JTextField searchField;
+    private JComboBox<String> statusComboBox;
+    private JComboBox<String> priorityComboBox;
+
     public MainFrame() {
         super("Менеджер задач");
         taskManager = new TaskManager();
         tableModel = new TaskTableModel();
 
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setSize(800, 600);
+        setSize(950, 650);
         setLocationRelativeTo(null);
 
         // Автоматическая загрузка задач при запуске
@@ -74,35 +83,69 @@ public class MainFrame extends JFrame {
         taskTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         add(new JScrollPane(taskTable), BorderLayout.CENTER);
 
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        // Панель для кнопок и фильтров
+        JPanel topPanel = new JPanel(new GridLayout(2, 1));
+
+        // 1. Панель действий
+        JPanel actionToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton addButton = new JButton("Добавить");
         JButton editButton = new JButton("Редактировать");
         JButton deleteButton = new JButton("Удалить");
         JButton saveButton = new JButton("Сохранить");
         JButton loadButton = new JButton("Загрузить");
         
-        JTextField searchField = new JTextField(15);
-        JButton searchButton = new JButton("Поиск");
+        actionToolbar.add(addButton);
+        actionToolbar.add(editButton);
+        actionToolbar.add(deleteButton);
+        actionToolbar.add(new JSeparator(SwingConstants.VERTICAL));
+        actionToolbar.add(saveButton);
+        actionToolbar.add(loadButton);
 
-        toolbar.add(addButton);
-        toolbar.add(editButton);
-        toolbar.add(deleteButton);
-        toolbar.add(new JSeparator(SwingConstants.VERTICAL));
-        toolbar.add(saveButton);
-        toolbar.add(loadButton);
-        toolbar.add(new JSeparator(SwingConstants.VERTICAL));
-        toolbar.add(searchField);
-        toolbar.add(searchButton);
+        // 2. Панель фильтрации
+        JPanel filterToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        
+        filterToolbar.add(new JLabel("Поиск:"));
+        searchField = new JTextField(15);
+        filterToolbar.add(searchField);
+        
+        filterToolbar.add(Box.createHorizontalStrut(10));
+        filterToolbar.add(new JLabel("Статус:"));
+        statusComboBox = new JComboBox<>();
+        statusComboBox.addItem("Все статусы");
+        for (TaskStatus status : TaskStatus.values()) {
+            statusComboBox.addItem(status.getDisplayName());
+        }
+        filterToolbar.add(statusComboBox);
+        
+        filterToolbar.add(Box.createHorizontalStrut(10));
+        filterToolbar.add(new JLabel("Приоритет:"));
+        priorityComboBox = new JComboBox<>();
+        priorityComboBox.addItem("Все приоритеты");
+        for (Priority priority : Priority.values()) {
+            priorityComboBox.addItem(priority.getDisplayName());
+        }
+        filterToolbar.add(priorityComboBox);
+        
+        JButton applyFilterButton = new JButton("Применить фильтры");
+        JButton resetFilterButton = new JButton("Сбросить");
+        
+        filterToolbar.add(Box.createHorizontalStrut(10));
+        filterToolbar.add(applyFilterButton);
+        filterToolbar.add(resetFilterButton);
 
-        add(toolbar, BorderLayout.NORTH);
+        topPanel.add(actionToolbar);
+        topPanel.add(filterToolbar);
 
+        add(topPanel, BorderLayout.NORTH);
+
+        // Оброботчики событий
         addButton.addActionListener(e -> {
             TaskDialog dialog = new TaskDialog(this, "Новая задача", null);
             dialog.setVisible(true);
             if (dialog.isConfirmed()) {
                 Task nt = dialog.getTask();
                 taskManager.addTask(nt.getTitle(), nt.getDescription(), nt.getPriority(), nt.getStatus(), nt.getDueDate());
-                refreshTable();
+                applyFilters(); // Обновляем с учетом фильтров
             }
         });
 
@@ -115,7 +158,7 @@ public class MainFrame extends JFrame {
                 if (dialog.isConfirmed()) {
                     Task updated = dialog.getTask();
                     taskManager.updateTask(selectedTask.getId(), updated.getTitle(), updated.getDescription(), updated.getPriority(), updated.getStatus(), updated.getDueDate());
-                    refreshTable();
+                    applyFilters();
                 }
             } else {
                 JOptionPane.showMessageDialog(this, "Выберите задачу для редактирования.");
@@ -129,7 +172,7 @@ public class MainFrame extends JFrame {
                 int confirm = JOptionPane.showConfirmDialog(this, "Вы уверены, что хотите удалить задачу?", "Удаление", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     taskManager.deleteTask(selectedTask.getId());
-                    refreshTable();
+                    applyFilters();
                 }
             } else {
                 JOptionPane.showMessageDialog(this, "Выберите задачу для удаления.");
@@ -165,7 +208,7 @@ public class MainFrame extends JFrame {
                 try {
                     File file = fileChooser.getSelectedFile();
                     taskManager.loadFromCsv(file);
-                    refreshTable();
+                    resetFilters(); // Сбрасываем фильтры при загрузке новых данных
                     JOptionPane.showMessageDialog(this, "Задачи успешно загружены из файла:\n" + file.getName());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this, "Ошибка загрузки: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
@@ -173,10 +216,49 @@ public class MainFrame extends JFrame {
             }
         });
 
-        searchButton.addActionListener(e -> {
-            String query = searchField.getText();
-            tableModel.setTasks(taskManager.search(query));
-        });
+        applyFilterButton.addActionListener(e -> applyFilters());
+        
+        resetFilterButton.addActionListener(e -> resetFilters());
+    }
+
+    private void applyFilters() {
+        List<Task> result = taskManager.getAllTasks();
+
+        // 1. Поиск по тексту (название / описание)
+        String query = searchField.getText().trim().toLowerCase();
+        if (!query.isEmpty()) {
+            result = result.stream()
+                    .filter(t -> t.getTitle().toLowerCase().contains(query) || 
+                                 t.getDescription().toLowerCase().contains(query))
+                    .collect(Collectors.toList());
+        }
+
+        // 2. Фильтрация по статусу
+        int statusIndex = statusComboBox.getSelectedIndex();
+        if (statusIndex > 0) { // 0 - "Все статусы"
+            TaskStatus selectedStatus = TaskStatus.values()[statusIndex - 1];
+            result = result.stream()
+                    .filter(t -> t.getStatus() == selectedStatus)
+                    .collect(Collectors.toList());
+        }
+
+        // 3. Фильтрация по приоритету
+        int priorityIndex = priorityComboBox.getSelectedIndex();
+        if (priorityIndex > 0) { // 0 - "Все приоритеты"
+            Priority selectedPriority = Priority.values()[priorityIndex - 1];
+            result = result.stream()
+                    .filter(t -> t.getPriority() == selectedPriority)
+                    .collect(Collectors.toList());
+        }
+
+        tableModel.setTasks(result);
+    }
+    
+    private void resetFilters() {
+        searchField.setText("");
+        statusComboBox.setSelectedIndex(0);
+        priorityComboBox.setSelectedIndex(0);
+        refreshTable();
     }
 
     private void refreshTable() {
