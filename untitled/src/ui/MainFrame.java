@@ -51,6 +51,12 @@ public class MainFrame extends JFrame {
                 taskManager.loadFromCsv(file);
             } catch (Exception ex) {
                 System.err.println("Не удалось выполнить автозагрузку задач: " + ex.getMessage());
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Не удалось загрузить автоматически сохраненные задачи:\n" + ex.getMessage(),
+                        "Предупреждение при автозагрузке",
+                        JOptionPane.WARNING_MESSAGE
+                );
             }
         }
     }
@@ -93,7 +99,7 @@ public class MainFrame extends JFrame {
         JButton deleteButton = new JButton("Удалить");
         JButton saveButton = new JButton("Сохранить");
         JButton loadButton = new JButton("Загрузить");
-        
+
         actionToolbar.add(addButton);
         actionToolbar.add(editButton);
         actionToolbar.add(deleteButton);
@@ -103,11 +109,11 @@ public class MainFrame extends JFrame {
 
         // 2. Панель фильтрации
         JPanel filterToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        
+
         filterToolbar.add(new JLabel("Поиск:"));
         searchField = new JTextField(15);
         filterToolbar.add(searchField);
-        
+
         filterToolbar.add(Box.createHorizontalStrut(10));
         filterToolbar.add(new JLabel("Статус:"));
         statusComboBox = new JComboBox<>();
@@ -116,7 +122,7 @@ public class MainFrame extends JFrame {
             statusComboBox.addItem(status.getDisplayName());
         }
         filterToolbar.add(statusComboBox);
-        
+
         filterToolbar.add(Box.createHorizontalStrut(10));
         filterToolbar.add(new JLabel("Приоритет:"));
         priorityComboBox = new JComboBox<>();
@@ -125,10 +131,10 @@ public class MainFrame extends JFrame {
             priorityComboBox.addItem(priority.getDisplayName());
         }
         filterToolbar.add(priorityComboBox);
-        
+
         JButton applyFilterButton = new JButton("Применить фильтры");
         JButton resetFilterButton = new JButton("Сбросить");
-        
+
         filterToolbar.add(Box.createHorizontalStrut(10));
         filterToolbar.add(applyFilterButton);
         filterToolbar.add(resetFilterButton);
@@ -138,87 +144,245 @@ public class MainFrame extends JFrame {
 
         add(topPanel, BorderLayout.NORTH);
 
-        // Оброботчики событий
+        // Обработчики событий
         addButton.addActionListener(e -> {
-            TaskDialog dialog = new TaskDialog(this, "Новая задача", null);
-            dialog.setVisible(true);
-            if (dialog.isConfirmed()) {
-                Task nt = dialog.getTask();
-                taskManager.addTask(nt.getTitle(), nt.getDescription(), nt.getPriority(), nt.getStatus(), nt.getDueDate());
-                applyFilters(); // Обновляем с учетом фильтров
+            try {
+                TaskDialog dialog = new TaskDialog(this, "Новая задача", null);
+                dialog.setVisible(true);
+                if (dialog.isConfirmed()) {
+                    Task nt = dialog.getTask();
+                    if (nt != null) {
+                        taskManager.addTask(nt.getTitle(), nt.getDescription(), nt.getPriority(), nt.getStatus(), nt.getDueDate());
+                        applyFilters();
+                    }
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Ошибка при добавлении задачи:\n" + ex.getMessage(),
+                        "Ошибка",
+                        JOptionPane.ERROR_MESSAGE
+                );
             }
         });
 
         editButton.addActionListener(e -> {
             int selectedRow = taskTable.getSelectedRow();
             if (selectedRow >= 0) {
-                Task selectedTask = tableModel.getTaskAt(selectedRow);
-                TaskDialog dialog = new TaskDialog(this, "Редактировать задачу", selectedTask);
-                dialog.setVisible(true);
-                if (dialog.isConfirmed()) {
-                    Task updated = dialog.getTask();
-                    taskManager.updateTask(selectedTask.getId(), updated.getTitle(), updated.getDescription(), updated.getPriority(), updated.getStatus(), updated.getDueDate());
-                    applyFilters();
+                try {
+                    Task selectedTask = tableModel.getTaskAt(selectedRow);
+                    if (selectedTask == null) {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Не удалось получить выбранную задачу.",
+                                "Предупреждение",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                        return;
+                    }
+                    TaskDialog dialog = new TaskDialog(this, "Редактировать задачу", selectedTask);
+                    dialog.setVisible(true);
+                    if (dialog.isConfirmed()) {
+                        Task updated = dialog.getTask();
+                        if (updated != null) {
+                            boolean success = taskManager.updateTask(
+                                    selectedTask.getId(),
+                                    updated.getTitle(),
+                                    updated.getDescription(),
+                                    updated.getPriority(),
+                                    updated.getStatus(),
+                                    updated.getDueDate()
+                            );
+                            if (success) {
+                                applyFilters();
+                            } else {
+                                JOptionPane.showMessageDialog(
+                                        this,
+                                        "Задача с указанным ID не найдена.",
+                                        "Ошибка обновления",
+                                        JOptionPane.ERROR_MESSAGE
+                                );
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Ошибка при редактировании задачи:\n" + ex.getMessage(),
+                            "Ошибка",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Выберите задачу для редактирования.");
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Выберите задачу в таблице для редактирования.",
+                        "Предупреждение",
+                        JOptionPane.WARNING_MESSAGE
+                        );
             }
         });
 
         deleteButton.addActionListener(e -> {
             int selectedRow = taskTable.getSelectedRow();
             if (selectedRow >= 0) {
-                Task selectedTask = tableModel.getTaskAt(selectedRow);
-                int confirm = JOptionPane.showConfirmDialog(this, "Вы уверены, что хотите удалить задачу?", "Удаление", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    taskManager.deleteTask(selectedTask.getId());
-                    applyFilters();
+                try {
+                    Task selectedTask = tableModel.getTaskAt(selectedRow);
+                    if (selectedTask == null) {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Не удалось получить выбранную задачу.",
+                                "Предупреждение",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                        return;
+                    }
+
+                    int confirm = JOptionPane.showConfirmDialog(
+                            this,
+                            "Вы действительно хотите удалить задачу \"" + selectedTask.getTitle() + "\"?",
+                            "Подтверждение удаления",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.QUESTION_MESSAGE
+                    );
+
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        boolean deleted = taskManager.deleteTask(selectedTask.getId());
+                        if (deleted) {
+                            applyFilters();
+                            JOptionPane.showMessageDialog(
+                                    this,
+                                    "Задача успешно удалена.",
+                                    "Информация",
+                                    JOptionPane.INFORMATION_MESSAGE
+                            );
+                        } else {
+                            JOptionPane.showMessageDialog(
+                                    this,
+                                    "Не удалось удалить задачу (возможно, она уже была удалена).",
+                                    "Ошибка",
+                                    JOptionPane.ERROR_MESSAGE
+                            );
+                        }
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Ошибка при удалении задачи:\n" + ex.getMessage(),
+                            "Ошибка",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Выберите задачу для удаления.");
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Выберите задачу в таблице для удаления.",
+                        "Предупреждение",
+                        JOptionPane.WARNING_MESSAGE
+                );
             }
         });
 
         saveButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Сохранить задачи в файл");
-            fileChooser.setFileFilter(new FileNameExtensionFilter("CSV / TXT файлы (*.csv, *.txt)", "csv", "txt"));
-            fileChooser.setSelectedFile(new File("tasks.csv"));
+            try {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Сохранить задачи в файл");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("CSV / TXT файлы (*.csv, *.txt)", "csv", "txt"));
+                fileChooser.setSelectedFile(new File("tasks.csv"));
 
-            if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                try {
+                if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
                     File file = fileChooser.getSelectedFile();
+                    if (file == null) {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Файл не выбран.",
+                                "Предупреждение",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                        return;
+                    }
                     if (!file.getName().toLowerCase().endsWith(".csv") && !file.getName().toLowerCase().endsWith(".txt")) {
                         file = new File(file.getAbsolutePath() + ".csv");
                     }
                     taskManager.saveToCsv(file);
-                    JOptionPane.showMessageDialog(this, "Задачи успешно сохранены в файл:\n" + file.getName());
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Ошибка сохранения: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Задачи успешно сохранены в файл:\n" + file.getAbsolutePath(),
+                            "Успешное сохранение",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
                 }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Ошибка при сохранении в файл:\n" + ex.getMessage(),
+                        "Ошибка сохранения",
+                        JOptionPane.ERROR_MESSAGE
+                );
             }
         });
 
         loadButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Загрузить задачи из файла");
-            fileChooser.setFileFilter(new FileNameExtensionFilter("CSV / TXT файлы (*.csv, *.txt)", "csv", "txt"));
+            try {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Загрузить задачи из файла");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("CSV / TXT файлы (*.csv, *.txt)", "csv", "txt"));
 
-            if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                try {
+                if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                     File file = fileChooser.getSelectedFile();
+                    if (file == null || !file.exists() || !file.isFile()) {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Выбранный файл не существует или недоступен для чтения.",
+                                "Ошибка файла",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                        return;
+                    }
                     taskManager.loadFromCsv(file);
-                    resetFilters(); // Сбрасываем фильтры при загрузке новых данных
-                    JOptionPane.showMessageDialog(this, "Задачи успешно загружены из файла:\n" + file.getName());
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Ошибка загрузки: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                    resetFilters();
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Задачи успешно загружены из файла:\n" + file.getAbsolutePath(),
+                            "Успешная загрузка",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
                 }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Ошибка при загрузке из файла:\n" + ex.getMessage(),
+                        "Ошибка загрузки",
+                        JOptionPane.ERROR_MESSAGE
+                );
             }
         });
 
-        applyFilterButton.addActionListener(e -> applyFilters());
-        
-        resetFilterButton.addActionListener(e -> resetFilters());
+        applyFilterButton.addActionListener(e -> {
+            try {
+                applyFilters();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Ошибка при фильтрации задач:\n" + ex.getMessage(),
+                        "Ошибка",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+        });
+
+        resetFilterButton.addActionListener(e -> {
+            try {
+                resetFilters();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Ошибка при сбросе фильтров:\n" + ex.getMessage(),
+                        "Ошибка",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+        });
     }
 
     private void applyFilters() {
@@ -228,8 +392,8 @@ public class MainFrame extends JFrame {
         String query = searchField.getText().trim().toLowerCase();
         if (!query.isEmpty()) {
             result = result.stream()
-                    .filter(t -> t.getTitle().toLowerCase().contains(query) || 
-                                 t.getDescription().toLowerCase().contains(query))
+                    .filter(t -> (t.getTitle() != null && t.getTitle().toLowerCase().contains(query)) ||
+                                 (t.getDescription() != null && t.getDescription().toLowerCase().contains(query)))
                     .collect(Collectors.toList());
         }
 
@@ -253,7 +417,7 @@ public class MainFrame extends JFrame {
 
         tableModel.setTasks(result);
     }
-    
+
     private void resetFilters() {
         searchField.setText("");
         statusComboBox.setSelectedIndex(0);

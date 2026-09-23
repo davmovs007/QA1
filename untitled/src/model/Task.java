@@ -21,19 +21,16 @@ public class Task implements Serializable {
     private LocalDateTime dueDate;
 
     public Task(String id, String title, String description, Priority priority, TaskStatus status, LocalDateTime dueDate) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.priority = priority != null ? priority : Priority.MEDIUM;
-        this.status = status != null ? status : TaskStatus.TODO;
-        this.createdAt = LocalDateTime.now();
-        this.dueDate = dueDate;
+        this(id, title, description, priority, status, LocalDateTime.now(), dueDate);
     }
 
     public Task(String id, String title, String description, Priority priority, TaskStatus status, LocalDateTime createdAt, LocalDateTime dueDate) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
+        if (title == null || title.trim().isEmpty()) {
+            throw new IllegalArgumentException("Заголовок задачи не может быть пустым.");
+        }
+        this.id = id != null ? id : "";
+        this.title = title.trim();
+        this.description = description != null ? description.trim() : "";
         this.priority = priority != null ? priority : Priority.MEDIUM;
         this.status = status != null ? status : TaskStatus.TODO;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();
@@ -45,7 +42,7 @@ public class Task implements Serializable {
     }
 
     public void setId(String id) {
-        this.id = id;
+        this.id = id != null ? id : "";
     }
 
     public String getTitle() {
@@ -60,7 +57,7 @@ public class Task implements Serializable {
     }
 
     public String getDescription() {
-        return description;
+        return description != null ? description : "";
     }
 
     public void setDescription(String description) {
@@ -68,7 +65,7 @@ public class Task implements Serializable {
     }
 
     public Priority getPriority() {
-        return priority;
+        return priority != null ? priority : Priority.MEDIUM;
     }
 
     public void setPriority(Priority priority) {
@@ -76,7 +73,7 @@ public class Task implements Serializable {
     }
 
     public TaskStatus getStatus() {
-        return status;
+        return status != null ? status : TaskStatus.TODO;
     }
 
     public void setStatus(TaskStatus status) {
@@ -88,7 +85,7 @@ public class Task implements Serializable {
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+        this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();
     }
 
     public LocalDateTime getDueDate() {

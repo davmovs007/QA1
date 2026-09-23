@@ -39,6 +39,7 @@ public class FileManager {
             writer.newLine();
 
             for (Task task : tasks) {
+                if (task == null) continue;
                 String line = String.format("%s,%s,%s,%s,%s,%s,%s",
                         escapeCsv(task.getId()),
                         escapeCsv(task.getTitle()),
@@ -95,7 +96,11 @@ public class FileManager {
                 }
 
                 String id = fields.get(0).trim();
-                String title = fields.size() > 1 ? fields.get(1) : "";
+                String title = fields.size() > 1 ? fields.get(1).trim() : "";
+                if (title.isEmpty()) {
+                    title = "Задача (" + (id.isEmpty() ? "б/н" : id) + ")";
+                }
+
                 String description = fields.size() > 2 ? fields.get(2) : "";
                 Priority priority = fields.size() > 3 ? parsePriority(fields.get(3)) : Priority.MEDIUM;
                 TaskStatus status = fields.size() > 4 ? parseStatus(fields.get(4)) : TaskStatus.TODO;

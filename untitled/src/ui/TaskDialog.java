@@ -24,11 +24,11 @@ public class TaskDialog extends JDialog {
     public TaskDialog(Frame owner, String title, Task taskToEdit) {
         super(owner, title, true);
         setLayout(new BorderLayout());
-        setSize(400, 350);
+        setSize(420, 360);
         setLocationRelativeTo(owner);
 
         JPanel formPanel = new JPanel(new GridLayout(5, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
         formPanel.add(new JLabel("Название:"));
         titleField = new JTextField();
@@ -75,7 +75,13 @@ public class TaskDialog extends JDialog {
     private void onSave() {
         String title = titleField.getText().trim();
         if (title.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Название не может быть пустым!", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Название задачи не может быть пустым!\nПожалуйста, введите название.",
+                    "Ошибка валидации",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            titleField.requestFocus();
             return;
         }
 
@@ -85,22 +91,37 @@ public class TaskDialog extends JDialog {
             try {
                 dueDate = LocalDateTime.parse(dueDateText, DATE_FORMATTER);
             } catch (DateTimeParseException e) {
-                JOptionPane.showMessageDialog(this, "Неверный формат даты! Используйте: дд.ММ.гггг ЧЧ:мм", "Ошибка", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Неверный формат даты дедлайна!\nИспользуйте формат: дд.ММ.гггг ЧЧ:мм\nПример: 31.12.2025 18:00",
+                        "Некорректная дата",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                dueDateField.requestFocus();
                 return;
             }
         }
 
-        resultTask = new Task(
-                "", // ID will be assigned by TaskManager
-                title,
-                descriptionArea.getText().trim(),
-                (Priority) priorityComboBox.getSelectedItem(),
-                (TaskStatus) statusComboBox.getSelectedItem(),
-                dueDate
-        );
+        try {
+            resultTask = new Task(
+                    "", // ID will be assigned by TaskManager
+                    title,
+                    descriptionArea.getText().trim(),
+                    (Priority) priorityComboBox.getSelectedItem(),
+                    (TaskStatus) statusComboBox.getSelectedItem(),
+                    dueDate
+            );
 
-        isConfirmed = true;
-        dispose();
+            isConfirmed = true;
+            dispose();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Ошибка при сохранении задачи:\n" + ex.getMessage(),
+                    "Ошибка",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
     }
 
     public boolean isConfirmed() {
