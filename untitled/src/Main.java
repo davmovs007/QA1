@@ -1,12 +1,24 @@
-import controller.TaskController;
-import service.TaskManager;
 import ui.MainFrame;
 
 import javax.swing.*;
+import javax.swing.plaf.FontUIResource;
+import java.awt.*;
+import java.util.Enumeration;
 
 public class Main {
     public static void main(String[] args) {
-        // Устанавливаем глобальный обработчик необработанных исключений
+        // Включаем сглаживание шрифтов
+        System.setProperty("awt.useSystemAAFontSettings", "on");
+        System.setProperty("swing.aatext", "true");
+
+        // Устанавливаем системный Look & Feel и современный шрифт
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            setUIFont(new FontUIResource("Segoe UI", Font.PLAIN, 13));
+        } catch (Exception ignored) {
+        }
+
+        // Глобальный обработчик необработанных исключений
         Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
             throwable.printStackTrace();
             SwingUtilities.invokeLater(() -> {
@@ -21,20 +33,7 @@ public class Main {
 
         SwingUtilities.invokeLater(() -> {
             try {
-                // 1. Инициализация слоя бизнес-логики (Model / Service)
-                TaskManager taskManager = new TaskManager();
-
-                // 2. Инициализация контроллера (Controller)
-                TaskController taskController = new TaskController(taskManager);
-                taskController.loadAutoSavedTasks(); // Загружаем данные до показа окна
-
-                // 3. Инициализация представления (View) с передачей контроллера
-                MainFrame frame = new MainFrame(taskController);
-                taskController.setView(frame);
-                
-                // 4. Первичное отображение данных
-                frame.applyFilters();
-                
+                MainFrame frame = new MainFrame();
                 frame.setVisible(true);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(
@@ -45,5 +44,16 @@ public class Main {
                 );
             }
         });
+    }
+
+    private static void setUIFont(FontUIResource font) {
+        Enumeration<Object> keys = UIManager.getDefaults().keys();
+        while (keys.hasMoreElements()) {
+            Object key = keys.nextElement();
+            Object value = UIManager.get(key);
+            if (value instanceof FontUIResource) {
+                UIManager.put(key, font);
+            }
+        }
     }
 }
