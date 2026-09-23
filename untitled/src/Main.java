@@ -1,3 +1,5 @@
+import controller.TaskController;
+import service.TaskManager;
 import ui.MainFrame;
 
 import javax.swing.*;
@@ -11,10 +13,20 @@ public class Main {
         System.setProperty("awt.useSystemAAFontSettings", "on");
         System.setProperty("swing.aatext", "true");
 
-        // Устанавливаем системный Look & Feel и современный шрифт
+        // Устанавливаем кроссплатформенный (или системный) Look & Feel
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            setUIFont(new FontUIResource("Segoe UI", Font.PLAIN, 13));
+            
+            // Выбираем шрифт, который поддерживает эмодзи на обеих платформах:
+            // "Dialog" — это логический шрифт Java, который умеет делать fallback 
+            // на системные шрифты (включая эмодзи).
+            String os = System.getProperty("os.name").toLowerCase();
+            String fontName = os.contains("win") ? "Segoe UI Emoji" : "Dialog";
+            setUIFont(new FontUIResource(fontName, Font.PLAIN, 13));
+            
+            // Принудительно делаем везде текст черным, как просил пользователь
+            setUIForeground(Color.BLACK);
+            
         } catch (Exception ignored) {
         }
 
@@ -33,7 +45,12 @@ public class Main {
 
         SwingUtilities.invokeLater(() -> {
             try {
-                MainFrame frame = new MainFrame();
+                TaskManager taskManager = new TaskManager();
+                TaskController taskController = new TaskController(taskManager);
+                MainFrame frame = new MainFrame(taskController);
+                taskController.setView(frame);
+                
+                frame.applyFilters();
                 frame.setVisible(true);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(
@@ -53,6 +70,16 @@ public class Main {
             Object value = UIManager.get(key);
             if (value instanceof FontUIResource) {
                 UIManager.put(key, font);
+            }
+        }
+    }
+    
+    private static void setUIForeground(Color color) {
+        Enumeration<Object> keys = UIManager.getDefaults().keys();
+        while (keys.hasMoreElements()) {
+            Object key = keys.nextElement();
+            if (key != null && key.toString().endsWith(".foreground")) {
+                UIManager.put(key, color);
             }
         }
     }
