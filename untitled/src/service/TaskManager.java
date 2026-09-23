@@ -44,6 +44,16 @@ public class TaskManager {
     }
 
     /**
+     * Устанавливает новый список задач, заменяя текущий.
+     */
+    public void setTasks(List<Task> newTasks) {
+        tasks.clear();
+        if (newTasks != null) {
+            tasks.addAll(newTasks);
+        }
+    }
+
+    /**
      * Поиск задачи по идентификатору.
      */
     public Optional<Task> getTaskById(String id) {
@@ -172,7 +182,22 @@ public class TaskManager {
         return tasks.stream().sorted(comparator).collect(Collectors.toList());
     }
 
-    // ==================== Сохранение и Загрузка (java.io) ====================
+    // ==================== Сохранение и Загрузка (CSV / TXT / Binary) ====================
+
+    /**
+     * Сохранение всех задач в CSV/TXT файл с помощью FileManager.
+     */
+    public void saveToCsv(File file) throws IOException {
+        FileManager.saveTasksToCsv(file, tasks);
+    }
+
+    /**
+     * Загрузка задач из CSV/TXT файла с помощью FileManager.
+     */
+    public void loadFromCsv(File file) throws IOException {
+        List<Task> loadedTasks = FileManager.loadTasksFromCsv(file);
+        setTasks(loadedTasks);
+    }
 
     /**
      * Сохранение всех задач в бинарный файл через стандартную сериализацию Java.
@@ -190,8 +215,7 @@ public class TaskManager {
     public void loadFromFile(File file) throws IOException, ClassNotFoundException {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
             List<Task> loadedTasks = (List<Task>) ois.readObject();
-            tasks.clear();
-            tasks.addAll(loadedTasks);
+            setTasks(loadedTasks);
         }
     }
 }
