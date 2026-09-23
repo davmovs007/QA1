@@ -157,7 +157,7 @@ public class TaskDialog extends JDialog {
         JButton saveButton = new JButton("Сохранить");
         saveButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         saveButton.setBackground(new Color(37, 99, 235));
-        saveButton.setForeground(Color.WHITE);
+        saveButton.setForeground(Color.BLACK);
         saveButton.setFocusPainted(false);
         saveButton.setPreferredSize(new Dimension(110, 34));
 
