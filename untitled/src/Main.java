@@ -13,18 +13,16 @@ public class Main {
         System.setProperty("awt.useSystemAAFontSettings", "on");
         System.setProperty("swing.aatext", "true");
 
-        // Устанавливаем кроссплатформенный (или системный) Look & Feel
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             
-            // Выбираем шрифт, который поддерживает эмодзи на обеих платформах:
-            // "Dialog" — это логический шрифт Java, который умеет делать fallback 
-            // на системные шрифты (включая эмодзи).
-            String os = System.getProperty("os.name").toLowerCase();
-            String fontName = os.contains("win") ? "Segoe UI Emoji" : "Dialog";
-            setUIFont(new FontUIResource(fontName, Font.PLAIN, 13));
+            // Восстанавливаем стандартный системный шрифт для корректного отображения ВСЕХ языков 
+            // (особенно кириллицы), чтобы вместо текста не было символов/квадратиков.
+            // "Dialog" / "SansSerif" — это умные составные шрифты Java, которые автоматически 
+            // переключаются на Segoe UI для букв и на Emoji-шрифты для самих иконок.
+            setUIFont(new FontUIResource("SansSerif", Font.PLAIN, 13));
             
-            // Принудительно делаем везде текст черным, как просил пользователь
+            // Принудительно делаем везде текст черным
             setUIForeground(Color.BLACK);
             
         } catch (Exception ignored) {
