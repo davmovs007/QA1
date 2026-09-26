@@ -20,6 +20,12 @@ import java.io.File;
 import java.util.List;
 
 public class MainFrame extends JFrame {
+    private static final Color WINDOW_BG = new Color(246, 248, 252);
+    private static final Color TEXT_PRIMARY = new Color(30, 41, 59);
+    private static final Color TEXT_MUTED = new Color(100, 116, 139);
+    private static final Color BORDER = new Color(226, 232, 240);
+    private static final Color PRIMARY = new Color(37, 99, 235);
+
     private final TaskController controller;
     private JTable taskTable;
     private TaskTableModel tableModel;
@@ -39,6 +45,7 @@ public class MainFrame extends JFrame {
         setSize(1000, 680);
         setMinimumSize(new Dimension(850, 500));
         setLocationRelativeTo(null);
+        getContentPane().setBackground(WINDOW_BG);
 
         initComponents();
         setupWindowClosing();
@@ -60,19 +67,22 @@ public class MainFrame extends JFrame {
 
         // ==================== ТАБЛИЦА ====================
         taskTable = new JTable(tableModel);
+        taskTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
         taskTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        taskTable.setRowHeight(34);
+        taskTable.setRowHeight(40);
         taskTable.setShowHorizontalLines(true);
         taskTable.setShowVerticalLines(false);
-        taskTable.setGridColor(new Color(230, 233, 238));
-        taskTable.setSelectionBackground(new Color(224, 231, 255));
-        taskTable.setSelectionForeground(Color.BLACK); // Устанавливаем черный цвет выделения
+        taskTable.setGridColor(BORDER);
+        taskTable.setSelectionBackground(new Color(219, 234, 254));
+        taskTable.setSelectionForeground(TEXT_PRIMARY);
+        taskTable.setIntercellSpacing(new Dimension(0, 1));
 
         // Настройка заголовков таблицы
         JTableHeader header = taskTable.getTableHeader();
+        header.setFont(new Font("SansSerif", Font.BOLD, 12));
         header.setBackground(new Color(241, 245, 249));
-        header.setForeground(Color.BLACK); // Чёрный цвет для заголовка
-        header.setPreferredSize(new Dimension(0, 38));
+        header.setForeground(TEXT_MUTED);
+        header.setPreferredSize(new Dimension(0, 42));
         header.setReorderingAllowed(false);
 
         // Настройка ширины колонок
@@ -97,26 +107,56 @@ public class MainFrame extends JFrame {
         });
 
         JScrollPane scrollPane = new JScrollPane(taskTable);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+        scrollPane.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(0, 16, 16, 16),
+                BorderFactory.createLineBorder(BORDER)
+        ));
         scrollPane.getViewport().setBackground(Color.WHITE);
         add(scrollPane, BorderLayout.CENTER);
 
         // ==================== ВЕРХНЯЯ ПАНЕЛЬ ====================
         JPanel topContainer = new JPanel();
         topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
-        topContainer.setBorder(new EmptyBorder(12, 12, 8, 12));
-        topContainer.setBackground(new Color(248, 250, 252));
+        topContainer.setBorder(new EmptyBorder(18, 22, 12, 22));
+        topContainer.setBackground(WINDOW_BG);
+
+        JPanel titlePanel = new JPanel();
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        titlePanel.setOpaque(false);
+        titlePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel titleLabel = new JLabel("Мои задачи");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+        titleLabel.setForeground(TEXT_PRIMARY);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel subtitleLabel = new JLabel("Планируйте день и держите все дела под контролем");
+        subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        subtitleLabel.setForeground(TEXT_MUTED);
+        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titlePanel.add(titleLabel);
+        titlePanel.add(Box.createVerticalStrut(3));
+        titlePanel.add(subtitleLabel);
+        titlePanel.add(Box.createVerticalStrut(9));
+
+        JPanel titleAccent = new JPanel();
+        titleAccent.setBackground(PRIMARY);
+        titleAccent.setPreferredSize(new Dimension(46, 3));
+        titleAccent.setMaximumSize(new Dimension(46, 3));
+        titleAccent.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titlePanel.add(titleAccent);
+
+        topContainer.add(titlePanel);
+        topContainer.add(Box.createVerticalStrut(14));
 
         // 1. Панель действий
         JPanel actionToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         actionToolbar.setOpaque(false);
 
         // Всегда передаем Color.BLACK для цвета текста
-        JButton addButton = createStyledButton("➕ Добавить", new Color(200, 230, 255), Color.BLACK);
-        JButton editButton = createStyledButton("✏️ Редактировать", new Color(241, 245, 249), Color.BLACK);
-        JButton deleteButton = createStyledButton("🗑️ Удалить", new Color(254, 226, 226), Color.BLACK);
-        JButton saveButton = createStyledButton("💾 Сохранить", new Color(241, 245, 249), Color.BLACK);
-        JButton loadButton = createStyledButton("📂 Загрузить", new Color(241, 245, 249), Color.BLACK);
+        JButton addButton = createStyledButton("＋  Добавить", PRIMARY, Color.WHITE);
+        JButton editButton = createStyledButton("✎  Редактировать", Color.WHITE, TEXT_PRIMARY);
+        JButton deleteButton = createStyledButton("♲  Удалить", new Color(254, 242, 242), new Color(185, 28, 28));
+        JButton saveButton = createStyledButton("↓  Сохранить", Color.WHITE, TEXT_PRIMARY);
+        JButton loadButton = createStyledButton("↑  Загрузить", Color.WHITE, TEXT_PRIMARY);
 
         actionToolbar.add(addButton);
         actionToolbar.add(editButton);
@@ -128,22 +168,18 @@ public class MainFrame extends JFrame {
         // 2. Панель фильтрации
         JPanel filterToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
         filterToolbar.setOpaque(false);
-        filterToolbar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)),
-                new EmptyBorder(6, 0, 0, 0)
-        ));
+        filterToolbar.setBorder(new EmptyBorder(4, 0, 0, 0));
 
-        JLabel searchLabel = new JLabel("🔍 Поиск:");
-        searchLabel.setForeground(Color.BLACK);
+        JLabel searchLabel = new JLabel("Поиск");
+        searchLabel.setForeground(TEXT_MUTED);
         filterToolbar.add(searchLabel);
 
         searchField = new JTextField(14);
-        searchField.setMargin(new Insets(4, 6, 4, 6));
-        searchField.setForeground(Color.BLACK);
+        styleInput(searchField);
         filterToolbar.add(searchField);
 
         JLabel statusLabel = new JLabel("Статус:");
-        statusLabel.setForeground(Color.BLACK);
+        statusLabel.setForeground(TEXT_MUTED);
         filterToolbar.add(statusLabel);
 
         statusComboBox = new JComboBox<>();
@@ -151,11 +187,11 @@ public class MainFrame extends JFrame {
         for (TaskStatus status : TaskStatus.values()) {
             statusComboBox.addItem(status.getDisplayName());
         }
-        statusComboBox.setForeground(Color.BLACK);
+        styleComboBox(statusComboBox);
         filterToolbar.add(statusComboBox);
 
         JLabel priorityLabel = new JLabel("Приоритет:");
-        priorityLabel.setForeground(Color.BLACK);
+        priorityLabel.setForeground(TEXT_MUTED);
         filterToolbar.add(priorityLabel);
 
         priorityComboBox = new JComboBox<>();
@@ -163,11 +199,11 @@ public class MainFrame extends JFrame {
         for (Priority priority : Priority.values()) {
             priorityComboBox.addItem(priority.getDisplayName());
         }
-        priorityComboBox.setForeground(Color.BLACK);
+        styleComboBox(priorityComboBox);
         filterToolbar.add(priorityComboBox);
 
-        JButton applyFilterButton = createStyledButton("⚡ Применить", new Color(241, 245, 249), Color.BLACK);
-        JButton resetFilterButton = createStyledButton("🔄 Сбросить", new Color(241, 245, 249), Color.BLACK);
+        JButton applyFilterButton = createStyledButton("Применить", new Color(219, 234, 254), new Color(30, 64, 175));
+        JButton resetFilterButton = createStyledButton("Сбросить", Color.WHITE, TEXT_PRIMARY);
 
         filterToolbar.add(applyFilterButton);
         filterToolbar.add(resetFilterButton);
@@ -178,11 +214,12 @@ public class MainFrame extends JFrame {
 
         // ==================== НИЖНЯЯ ПАНЕЛЬ СТАТУСА ====================
         JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.setBorder(new EmptyBorder(8, 16, 8, 16));
+        bottomPanel.setBorder(new EmptyBorder(10, 22, 10, 22));
         bottomPanel.setBackground(new Color(241, 245, 249));
 
         statusBarLabel = new JLabel("Всего задач: 0");
-        statusBarLabel.setForeground(Color.BLACK); // Устанавливаем черный цвет для строки состояния
+        statusBarLabel.setForeground(TEXT_MUTED);
+        statusBarLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         bottomPanel.add(statusBarLabel, BorderLayout.WEST);
 
         add(bottomPanel, BorderLayout.SOUTH);
@@ -199,16 +236,48 @@ public class MainFrame extends JFrame {
 
     private JButton createStyledButton(String text, Color bg, Color fg) {
         JButton button = new JButton(text);
+        button.setFont(new Font("SansSerif", Font.BOLD, 12));
         button.setBackground(bg);
-        button.setForeground(fg); // fg is ALWAYS Color.BLACK now based on calls
+        button.setForeground(fg);
         button.setFocusPainted(false);
-        button.setMargin(new Insets(6, 12, 6, 12));
+        button.setOpaque(true);
+        button.setMargin(new Insets(7, 14, 7, 14));
         button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(203, 213, 225), 1, true),
-                new EmptyBorder(4, 8, 4, 8)
+                BorderFactory.createLineBorder(bg.equals(PRIMARY) ? PRIMARY : BORDER, 1, true),
+                new EmptyBorder(3, 6, 3, 6)
         ));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (button.isEnabled()) {
+                    button.setBackground(bg.equals(PRIMARY) ? new Color(29, 78, 216) : new Color(241, 245, 249));
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(bg);
+            }
+        });
         return button;
+    }
+
+    private void styleInput(JTextField field) {
+        field.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        field.setForeground(TEXT_PRIMARY);
+        field.setBackground(Color.WHITE);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER, 1, true),
+                new EmptyBorder(6, 9, 6, 9)
+        ));
+    }
+
+    private void styleComboBox(JComboBox<String> comboBox) {
+        comboBox.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        comboBox.setForeground(TEXT_PRIMARY);
+        comboBox.setBackground(Color.WHITE);
+        comboBox.setBorder(BorderFactory.createLineBorder(BORDER, 1, true));
     }
 
     private void addNewTask() {
@@ -347,11 +416,10 @@ public class MainFrame extends JFrame {
                 return c;
             }
 
-            // Фокус и цвет текста ВСЕГДА черный, как просил пользователь!
-            c.setForeground(Color.BLACK); 
+            c.setForeground(TEXT_PRIMARY);
 
             if (isSelected) {
-                c.setBackground(new Color(224, 231, 255));
+                c.setBackground(new Color(219, 234, 254));
                 return c;
             }
             

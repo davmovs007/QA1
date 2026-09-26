@@ -13,6 +13,11 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 public class TaskDialog extends JDialog {
+    private static final Color TEXT_PRIMARY = new Color(30, 41, 59);
+    private static final Color TEXT_MUTED = new Color(100, 116, 139);
+    private static final Color BORDER = new Color(226, 232, 240);
+    private static final Color PRIMARY = new Color(37, 99, 235);
+
     private JTextField titleField;
     private JTextArea descriptionArea;
     private JComboBox<Priority> priorityComboBox;
@@ -26,21 +31,21 @@ public class TaskDialog extends JDialog {
     public TaskDialog(Frame owner, String title, Task taskToEdit) {
         super(owner, title, true);
         setLayout(new BorderLayout());
-        setSize(480, 440);
+        setSize(520, 480);
         setLocationRelativeTo(owner);
         setResizable(false);
 
         // Основная панель с отступами
         JPanel mainPanel = new JPanel(new GridBagLayout());
-        mainPanel.setBorder(new EmptyBorder(20, 24, 15, 24));
-        mainPanel.setBackground(new Color(250, 250, 252));
+        mainPanel.setBorder(new EmptyBorder(22, 26, 16, 26));
+        mainPanel.setBackground(new Color(248, 250, 252));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(6, 6, 6, 6);
 
-        Font labelFont = new Font("Segoe UI", Font.BOLD, 13);
-        Font fieldFont = new Font("Segoe UI", Font.PLAIN, 13);
+        Font labelFont = new Font("SansSerif", Font.BOLD, 13);
+        Font fieldFont = new Font("SansSerif", Font.PLAIN, 13);
 
         // 1. Поле Название
         gbc.gridx = 0;
@@ -53,8 +58,7 @@ public class TaskDialog extends JDialog {
         gbc.gridx = 1;
         gbc.weightx = 0.7;
         titleField = new JTextField();
-        titleField.setFont(fieldFont);
-        titleField.setMargin(new Insets(5, 8, 5, 8));
+        styleTextField(titleField, fieldFont);
         mainPanel.add(titleField, gbc);
 
         // 2. Поле Описание
@@ -72,11 +76,13 @@ public class TaskDialog extends JDialog {
         gbc.weighty = 1.0;
         descriptionArea = new JTextArea(4, 20);
         descriptionArea.setFont(fieldFont);
+        descriptionArea.setForeground(TEXT_PRIMARY);
+        descriptionArea.setBackground(Color.WHITE);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
         descriptionArea.setMargin(new Insets(6, 8, 6, 8));
         JScrollPane descScrollPane = new JScrollPane(descriptionArea);
-        descScrollPane.setBorder(BorderFactory.createLineBorder(new Color(210, 214, 220)));
+        descScrollPane.setBorder(BorderFactory.createLineBorder(BORDER, 1, true));
         mainPanel.add(descScrollPane, gbc);
 
         // 3. Поле Приоритет
@@ -92,8 +98,7 @@ public class TaskDialog extends JDialog {
         gbc.gridx = 1;
         gbc.weightx = 0.7;
         priorityComboBox = new JComboBox<>(Priority.values());
-        priorityComboBox.setFont(fieldFont);
-        priorityComboBox.setPreferredSize(new Dimension(200, 32));
+        styleComboBox(priorityComboBox, fieldFont);
         mainPanel.add(priorityComboBox, gbc);
 
         // 4. Поле Статус
@@ -107,8 +112,7 @@ public class TaskDialog extends JDialog {
         gbc.gridx = 1;
         gbc.weightx = 0.7;
         statusComboBox = new JComboBox<>(TaskStatus.values());
-        statusComboBox.setFont(fieldFont);
-        statusComboBox.setPreferredSize(new Dimension(200, 32));
+        styleComboBox(statusComboBox, fieldFont);
         mainPanel.add(statusComboBox, gbc);
 
         // 5. Поле Дедлайн
@@ -122,8 +126,7 @@ public class TaskDialog extends JDialog {
         gbc.gridx = 1;
         gbc.weightx = 0.7;
         dueDateField = new JTextField();
-        dueDateField.setFont(fieldFont);
-        dueDateField.setMargin(new Insets(5, 8, 5, 8));
+        styleTextField(dueDateField, fieldFont);
         dueDateField.setToolTipText("Формат: дд.ММ.гггг ЧЧ:мм (например: 31.12.2025 18:00)");
         mainPanel.add(dueDateField, gbc);
 
@@ -131,8 +134,8 @@ public class TaskDialog extends JDialog {
         gbc.gridx = 1;
         gbc.gridy = 5;
         JLabel hintLabel = new JLabel("Формат: дд.ММ.гггг ЧЧ:мм (например, 31.12.2025 18:00)");
-        hintLabel.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        hintLabel.setForeground(new Color(108, 117, 125));
+        hintLabel.setFont(new Font("SansSerif", Font.ITALIC, 11));
+        hintLabel.setForeground(TEXT_MUTED);
         mainPanel.add(hintLabel, gbc);
 
         // Заполнение при редактировании
@@ -148,19 +151,28 @@ public class TaskDialog extends JDialog {
 
         // Панель кнопок
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
-        buttonsPanel.setBackground(new Color(242, 244, 247));
-        buttonsPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(222, 226, 230)));
+        buttonsPanel.setBackground(new Color(241, 245, 249));
+        buttonsPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER));
 
         JButton cancelButton = new JButton("Отмена");
         cancelButton.setFont(fieldFont);
-        cancelButton.setPreferredSize(new Dimension(100, 34));
+        cancelButton.setForeground(TEXT_PRIMARY);
+        cancelButton.setBackground(Color.WHITE);
+        cancelButton.setFocusPainted(false);
+        cancelButton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER, 1, true),
+                new EmptyBorder(7, 14, 7, 14)
+        ));
 
         JButton saveButton = new JButton("Сохранить");
-        saveButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        saveButton.setBackground(new Color(37, 99, 235));
+        saveButton.setFont(new Font("SansSerif", Font.BOLD, 13));
+        saveButton.setBackground(Color.WHITE);
         saveButton.setForeground(Color.BLACK);
         saveButton.setFocusPainted(false);
-        saveButton.setPreferredSize(new Dimension(110, 34));
+        saveButton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER, 1, true),
+                new EmptyBorder(7, 16, 7, 16)
+        ));
 
         saveButton.addActionListener(e -> onSave());
         cancelButton.addActionListener(e -> dispose());
@@ -168,6 +180,24 @@ public class TaskDialog extends JDialog {
         buttonsPanel.add(cancelButton);
         buttonsPanel.add(saveButton);
         add(buttonsPanel, BorderLayout.SOUTH);
+    }
+
+    private void styleTextField(JTextField field, Font font) {
+        field.setFont(font);
+        field.setForeground(TEXT_PRIMARY);
+        field.setBackground(Color.WHITE);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER, 1, true),
+                new EmptyBorder(7, 9, 7, 9)
+        ));
+    }
+
+    private void styleComboBox(JComboBox<?> comboBox, Font font) {
+        comboBox.setFont(font);
+        comboBox.setForeground(TEXT_PRIMARY);
+        comboBox.setBackground(Color.WHITE);
+        comboBox.setPreferredSize(new Dimension(200, 36));
+        comboBox.setBorder(BorderFactory.createLineBorder(BORDER, 1, true));
     }
 
     private void onSave() {
