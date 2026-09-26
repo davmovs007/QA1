@@ -7,6 +7,7 @@ import model.TaskStatus;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -199,13 +200,27 @@ public class TaskDialog extends JDialog {
             }
         }
 
+        TaskStatus status = (TaskStatus) statusComboBox.getSelectedItem();
+        if (dueDate != null
+                && (status == TaskStatus.TODO || status == TaskStatus.IN_PROGRESS)
+                && dueDate.toLocalDate().isBefore(LocalDate.now())) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Для статусов «К выполнению» и «В процессе» дедлайн не может быть раньше сегодняшнего дня.",
+                    "Некорректный дедлайн",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            dueDateField.requestFocus();
+            return;
+        }
+
         try {
             resultTask = new Task(
                     "",
                     title,
                     descriptionArea.getText().trim(),
                     (Priority) priorityComboBox.getSelectedItem(),
-                    (TaskStatus) statusComboBox.getSelectedItem(),
+                    status,
                     dueDate
             );
 
